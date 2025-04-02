@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1743568016028",
+    "title": "Laptop Gamer",
+    "description": "Laptop con RTX 4090",
+    "code": "LAP123",
+    "price": 3500,
+    "status": true,
+    "stock": 10,
+    "category": "Tecnología",
+    "thumbnails": [
+      "ruta/imagen1.jpg",
+      "ruta/imagen2.jpg"
+    ]
+  }
+]
