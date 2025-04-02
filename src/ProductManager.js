@@ -41,7 +41,7 @@ class ProductManager {
         // Verificar si faltan propiedades
         if (!productData.title || !productData.description || !productData.code || 
             !productData.price || !productData.stock || !productData.category) {
-            throw new Error('Missing required product fields');
+            throw new Error('Te falto alguna propiedad del producto!');
         }
     
         const newProduct = {
@@ -67,12 +67,12 @@ class ProductManager {
         await this.initialize();
         const index = this.products.findIndex(p => p.id === id);
         if (index === -1) {
-            throw new Error('Product not found');
+            throw new Error('Producto no encontrado');
         }
         this.products[index] = {
             ...this.products[index],
             ...productData,
-            id // Ensure ID remains unchanged
+            id 
         };
         await this.saveProducts();
         return this.products[index];
@@ -82,7 +82,7 @@ class ProductManager {
         await this.initialize();
         const index = this.products.findIndex(p => p.id === id);
         if (index === -1) {
-            throw new Error('Product not found');
+            throw new Error('Producto no encontrado');
         }
         this.products.splice(index, 1);
         await this.saveProducts();

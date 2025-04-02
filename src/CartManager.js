@@ -4,7 +4,7 @@ const path = require('path');
 class CartManager {
     constructor() {
         this.carts = [];
-        this.path = path.join(__dirname, '../../data/carts.json');
+        this.path = path.join(__dirname, '../data/carts.json');
     }
 
     async initialize() {
@@ -13,9 +13,11 @@ class CartManager {
             const data = await fs.readFile(this.path, 'utf-8');
             this.carts = JSON.parse(data);
         } catch (error) {
+            this.carts = []; 
             await fs.writeFile(this.path, JSON.stringify([], null, 2));
         }
     }
+    
 
     async saveCarts() {
         await fs.writeFile(this.path, JSON.stringify(this.carts, null, 2));
@@ -34,9 +36,9 @@ class CartManager {
 
     async getCartById(id) {
         await this.initialize();
-        const cart = this.carts.find(c => c.id === id);
+        const cart = this.carts.find(c => c.id.toString() === id.toString());
         if (!cart) {
-            throw new Error('Cart not found');
+            throw new Error('Carrito no encontrado');
         }
         return cart;
     }
@@ -44,7 +46,7 @@ class CartManager {
     async addProductToCart(cartId, productId) {
         await this.initialize();
         const cart = await this.getCartById(cartId);
-        const existingProduct = cart.products.find(p => p.product === productId);
+        const existingProduct = cart.products.find(p => p.product.toString() === productId.toString());
 
         if (existingProduct) {
             existingProduct.quantity += 1;
