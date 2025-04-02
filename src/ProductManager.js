@@ -4,7 +4,7 @@ const path = require('path');
 class ProductManager {
     constructor() {
         this.products = [];
-        this.path = path.join(__dirname, '../../data/products.json');
+        this.path = path.join(__dirname, '../data/products.json');
     }
 
     async initialize() {
@@ -37,15 +37,31 @@ class ProductManager {
 
     async addProduct(productData) {
         await this.initialize();
+    
+        // Verificar si faltan propiedades
+        if (!productData.title || !productData.description || !productData.code || 
+            !productData.price || !productData.stock || !productData.category) {
+            throw new Error('Missing required product fields');
+        }
+    
         const newProduct = {
             id: Date.now().toString(),
-            ...productData,
-            status: true
+            title: productData.title,
+            description: productData.description,
+            code: productData.code,
+            price: productData.price,
+            status: true, // Siempre en true por defecto
+            stock: productData.stock,
+            category: productData.category,
+            thumbnails: productData.thumbnails || [] // Si no envían imágenes, dejarlo vacío
         };
+    
         this.products.push(newProduct);
         await this.saveProducts();
+    
         return newProduct;
     }
+    
 
     async updateProduct(id, productData) {
         await this.initialize();
