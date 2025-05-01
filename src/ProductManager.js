@@ -13,6 +13,7 @@ class ProductManager {
             const data = await fs.readFile(this.path, 'utf-8');
             this.products = JSON.parse(data);
         } catch (error) {
+            this.products = [];
             await fs.writeFile(this.path, JSON.stringify([], null, 2));
         }
     }
@@ -38,7 +39,6 @@ class ProductManager {
     async addProduct(productData) {
         await this.initialize();
     
-        // Verificar si faltan propiedades
         if (!productData.title || !productData.description || !productData.code || 
             !productData.price || !productData.stock || !productData.category) {
             throw new Error('Te falto alguna propiedad del producto!');
@@ -49,11 +49,11 @@ class ProductManager {
             title: productData.title,
             description: productData.description,
             code: productData.code,
-            price: productData.price,
-            status: true, // Siempre en true por defecto
-            stock: productData.stock,
+            price: parseFloat(productData.price),
+            status: true,
+            stock: parseInt(productData.stock),
             category: productData.category,
-            thumbnails: productData.thumbnails || [] // Si no envían imágenes, dejarlo vacío
+            thumbnails: productData.thumbnails || []
         };
     
         this.products.push(newProduct);
