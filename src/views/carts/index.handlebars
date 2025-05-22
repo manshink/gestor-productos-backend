@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShop - Carrito</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Loading Animation -->
+    <div class="loading" id="loading"></div>
+
+    <!-- Header -->
+    <header class="cyber-header">
+        <div class="container">
+            <h1 class="cyber-title text-center">CYBER SHOP</h1>
+        </div>
+    </header>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Carrito de Compras</h2>
+                        
+                        {{#if products.length}}
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Producto</th>
+                                            <th>Precio</th>
+                                            <th>Cantidad</th>
+                                            <th>Subtotal</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {{#each products}}
+                                        <tr>
+                                            <td>{{this.product.title}}</td>
+                                            <td>${{this.product.price}}</td>
+                                            <td>{{this.quantity}}</td>
+                                            <td>${{multiply this.product.price this.quantity}}</td>
+                                            <td>
+                                                <button onclick="updateQuantity('{{this.product._id}}', {{add this.quantity -1}})" 
+                                                        class="btn btn-sm btn-info">-</button>
+                                                <button onclick="updateQuantity('{{this.product._id}}', {{add this.quantity 1}})" 
+                                                        class="btn btn-sm btn-info">+</button>
+                                                <button onclick="removeProduct('{{this.product._id}}')" 
+                                                        class="btn btn-sm btn-danger">Eliminar</button>
+                                            </td>
+                                        </tr>
+                                        {{/each}}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                            <td colspan="2"><strong>${{total}}</strong></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="/products" class="btn btn-info">Seguir comprando</a>
+                                <button onclick="clearCart()" class="btn btn-danger">Vaciar carrito</button>
+                                <button onclick="checkout()" class="btn btn-success">Finalizar compra</button>
+                            </div>
+                        {{else}}
+                            <div class="text-center py-5">
+                                <h3>Tu carrito está vacío</h3>
+                                <p>¡Agrega algunos productos para comenzar a comprar!</p>
+                                <a href="/products" class="btn btn-info mt-3">Ver productos</a>
+                            </div>
+                        {{/if}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="cyber-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="/products">Productos</a>
+                    <a href="/carts/1">Carrito</a>
+                    <a href="#">Contacto</a>
+                </div>
+                <div class="footer-text">
+                    © 2024 CyberShop - Todos los derechos reservados
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Loading animation
+        window.addEventListener('load', () => {
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        });
+
+        async function updateQuantity(productId, newQuantity) {
+            if (newQuantity < 1) return;
+            
+            try {
+                const loading = document.getElementById('loading');
+                loading.style.display = 'flex';
+                loading.style.opacity = '1';
+
+                const response = await fetch(`/api/carts/{{cartId}}/products/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: newQuantity })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al actualizar la cantidad');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                showAlert('error', error.message);
+            } finally {
+                const loading = document.getElementById('loading');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        async function removeProduct(productId) {
+            try {
+                const loading = document.getElementById('loading');
+                loading.style.display = 'flex';
+                loading.style.opacity = '1';
+
+                const response = await fetch(`/api/carts/{{cartId}}/products/${productId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al eliminar el producto');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                showAlert('error', error.message);
+            } finally {
+                const loading = document.getElementById('loading');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        async function clearCart() {
+            if (!confirm('¿Estás seguro de que deseas vaciar el carrito?')) return;
+
+            try {
+                const loading = document.getElementById('loading');
+                loading.style.display = 'flex';
+                loading.style.opacity = '1';
+
+                const response = await fetch(`/api/carts/{{cartId}}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al vaciar el carrito');
+                }
+
+                window.location.reload();
+            } catch (error) {
+                showAlert('error', error.message);
+            } finally {
+                const loading = document.getElementById('loading');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 500);
+            }
+        }
+
+        function checkout() {
+            showAlert('info', '¡Gracias por tu compra! Esta funcionalidad estará disponible próximamente.');
+        }
+
+        function showAlert(type, message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} cyber-alert`;
+            alertDiv.style.position = 'fixed';
+            alertDiv.style.top = '20px';
+            alertDiv.style.right = '20px';
+            alertDiv.style.zIndex = '1000';
+            
+            if (type === 'success') {
+                alertDiv.style.background = 'rgba(0, 243, 255, 0.1)';
+                alertDiv.style.border = '1px solid var(--neon-blue)';
+                alertDiv.style.color = 'var(--neon-blue)';
+            } else if (type === 'error') {
+                alertDiv.style.background = 'rgba(255, 0, 255, 0.1)';
+                alertDiv.style.border = '1px solid var(--neon-pink)';
+                alertDiv.style.color = 'var(--neon-pink)';
+            } else {
+                alertDiv.style.background = 'rgba(255, 255, 0, 0.1)';
+                alertDiv.style.border = '1px solid var(--neon-yellow)';
+                alertDiv.style.color = 'var(--neon-yellow)';
+            }
+            
+            alertDiv.style.padding = '1rem';
+            alertDiv.style.borderRadius = '0';
+            alertDiv.style.boxShadow = `0 0 10px var(--neon-${type === 'success' ? 'blue' : type === 'error' ? 'pink' : 'yellow'})`;
+            alertDiv.textContent = message;
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(alertDiv);
+                }, 500);
+            }, 3000);
+        }
+    </script>
+</body>
+</html> 

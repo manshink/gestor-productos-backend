@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberShop - Productos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Loading Animation -->
+    <div class="loading" id="loading"></div>
+
+    <!-- Header -->
+    <header class="cyber-header">
+        <div class="container">
+            <h1 class="cyber-title text-center">CYBER SHOP</h1>
+        </div>
+    </header>
+
+    <div class="container mt-4">
+        <!-- Filtros y ordenamiento -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <form class="d-flex gap-2">
+                    <select name="query" class="form-select">
+                        <option value="">Todas las categorías</option>
+                        <option value="category:electronics">Electrónicos</option>
+                        <option value="category:clothing">Ropa</option>
+                        <option value="category:books">Libros</option>
+                    </select>
+                    <select name="sort" class="form-select">
+                        <option value="">Ordenar por precio</option>
+                        <option value="asc">Menor a Mayor</option>
+                        <option value="desc">Mayor a Menor</option>
+                    </select>
+                    <button type="submit" class="btn btn-info">Filtrar</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de productos -->
+        <div class="row">
+            {{#each payload}}
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{this.title}}</h5>
+                        <p class="card-text">{{this.description}}</p>
+                        <p class="card-text"><strong>Precio: ${{this.price}}</strong></p>
+                        <p class="card-text"><small class="text-muted">Stock: {{this.stock}}</small></p>
+                        <div class="d-flex justify-content-between">
+                            <a href="/products/{{this._id}}" class="btn btn-info">Ver detalles</a>
+                            <button onclick="addToCart('{{this._id}}')" class="btn btn-success">Agregar al carrito</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{/each}}
+        </div>
+
+        <!-- Paginación -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {{#if hasPrevPage}}
+                <li class="page-item">
+                    <a class="page-link" href="{{prevLink}}">Anterior</a>
+                </li>
+                {{/if}}
+                
+                <li class="page-item active">
+                    <span class="page-link">Página {{page}} de {{totalPages}}</span>
+                </li>
+
+                {{#if hasNextPage}}
+                <li class="page-item">
+                    <a class="page-link" href="{{nextLink}}">Siguiente</a>
+                </li>
+                {{/if}}
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Footer -->
+    <footer class="cyber-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="/products">Productos</a>
+                    <a href="/carts/1">Carrito</a>
+                    <a href="#">Contacto</a>
+                </div>
+                <div class="footer-text">
+                    © 2024 CyberShop - Todos los derechos reservados
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Loading animation
+        window.addEventListener('load', () => {
+            const loading = document.getElementById('loading');
+            loading.style.opacity = '0';
+            setTimeout(() => {
+                loading.style.display = 'none';
+            }, 500);
+        });
+
+        async function addToCart(productId) {
+            try {
+                const loading = document.getElementById('loading');
+                loading.style.display = 'flex';
+                loading.style.opacity = '1';
+
+                console.log('Intentando agregar producto al carrito:', productId);
+                
+                // Primero, asegurémonos de que existe un carrito
+                const cartResponse = await fetch('/api/carts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!cartResponse.ok) {
+                    throw new Error('Error al crear/obtener el carrito');
+                }
+                
+                const cartData = await cartResponse.json();
+                const cartId = cartData.payload._id;
+                
+                // Ahora agregamos el producto al carrito
+                const response = await fetch(`/api/carts/${cartId}/products/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Error al agregar el producto');
+                }
+                
+                const data = await response.json();
+                console.log('Producto agregado al carrito:', data);
+                
+                // Mostrar mensaje de éxito con estilo cyberpunk
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success cyber-alert';
+                alertDiv.style.position = 'fixed';
+                alertDiv.style.top = '20px';
+                alertDiv.style.right = '20px';
+                alertDiv.style.zIndex = '1000';
+                alertDiv.style.background = 'rgba(0, 243, 255, 0.1)';
+                alertDiv.style.border = '1px solid var(--neon-blue)';
+                alertDiv.style.color = 'var(--neon-blue)';
+                alertDiv.style.padding = '1rem';
+                alertDiv.style.borderRadius = '0';
+                alertDiv.style.boxShadow = '0 0 10px var(--neon-blue)';
+                alertDiv.textContent = 'Producto agregado al carrito exitosamente';
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(alertDiv);
+                    }, 500);
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Error al agregar al carrito:', error);
+                
+                // Mostrar mensaje de error con estilo cyberpunk
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-danger cyber-alert';
+                alertDiv.style.position = 'fixed';
+                alertDiv.style.top = '20px';
+                alertDiv.style.right = '20px';
+                alertDiv.style.zIndex = '1000';
+                alertDiv.style.background = 'rgba(255, 0, 255, 0.1)';
+                alertDiv.style.border = '1px solid var(--neon-pink)';
+                alertDiv.style.color = 'var(--neon-pink)';
+                alertDiv.style.padding = '1rem';
+                alertDiv.style.borderRadius = '0';
+                alertDiv.style.boxShadow = '0 0 10px var(--neon-pink)';
+                alertDiv.textContent = 'Error al agregar el producto: ' + error.message;
+                
+                document.body.appendChild(alertDiv);
+                
+                setTimeout(() => {
+                    alertDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        document.body.removeChild(alertDiv);
+                    }, 500);
+                }, 3000);
+            } finally {
+                const loading = document.getElementById('loading');
+                loading.style.opacity = '0';
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html> 

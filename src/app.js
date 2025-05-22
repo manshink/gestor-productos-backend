@@ -1,92 +1,81 @@
+require('dotenv').config();
 const express = require('express');
-const { engine } = require('express-handlebars');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
-const productsRouter = require('./routes/products.router.js');
-const cartsRouter = require('./routes/carts.router.js');
-const ProductManager = require('./ProductManager.js');
+const exphbs = require('express-handlebars');
+const path = require('path');
+const connectDB = require('./config/database');
+const productController = require('./controllers/productController');
+const cartController = require('./controllers/cartController');
+
+// Verificar variables de entorno
+console.log('Variables de entorno cargadas:');
+console.log('MONGODB_URI:', process.env.MONGODB_URI);
+console.log('PORT:', process.env.PORT);
 
 const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+
+// Configuración de Handlebars
+app.engine('handlebars', exphbs.engine({
+    helpers: {
+        multiply: function(a, b) {
+            return a * b;
+        }
+    },
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true
     }
-});
-const PORT = 8080;
-const productManager = new ProductManager();
-
-app.engine('handlebars', engine());
+}));
 app.set('view engine', 'handlebars');
-app.set('views', './src/views');
+app.set('views', path.join(__dirname, 'views'));
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/api/products', productsRouter);
-app.use('/api/carts', cartsRouter);
+// Conexión a MongoDB
+connectDB();
 
-app.get('/', async (req, res) => {
+// Rutas API
+app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/carts', require('./routes/cartRoutes'));
+
+// Rutas de vistas
+app.get('/products', productController.getProductsView);
+app.get('/products/:pid', productController.getProductDetailView);
+app.get('/carts/:cid', cartController.getCartView);
+
+app.get('/carts/:cid', async (req, res) => {
     try {
-        const products = await productManager.getProducts();
-        res.render('home', { products });
+        const response = await fetch(`http://localhost:${process.env.PORT}/api/carts/${req.params.cid}`);
+        const data = await response.json();
+        
+        // Calcular el total
+        const total = data.payload.products.reduce((sum, item) => {
+            return sum + (item.product.price * item.quantity);
+        }, 0);
+
+        res.render('carts/detail', { 
+            cart: data.payload,
+            total: total
+        });
     } catch (error) {
-        console.error('Error loading products:', error);
-        res.status(500).send('Error loading products');
+        res.status(500).render('error', { message: error.message });
     }
 });
 
-app.get('/realtimeproducts', async (req, res) => {
-    try {
-        const products = await productManager.getProducts();
-        res.render('realTimeProducts', { products });
-    } catch (error) {
-        console.error('Error loading products:', error);
-        res.status(500).send('Error loading products');
-    }
+// Ruta de error
+app.get('/error', (req, res) => {
+    res.render('error', { message: 'Ha ocurrido un error' });
 });
 
-io.on('connection', async (socket) => {
-    console.log('New client connected');
-
-    try {
-        const products = await productManager.getProducts();
-        socket.emit('updateProducts', products);
-    } catch (error) {
-        console.error('Error sending initial products:', error);
-    }
-
-    socket.on('newProduct', async (product) => {
-        try {
-            console.log('Adding new product:', product);
-            const newProduct = await productManager.addProduct(product);
-            const products = await productManager.getProducts();
-            io.emit('updateProducts', products);
-        } catch (error) {
-            console.error('Error adding product:', error);
-            socket.emit('error', { message: error.message });
-        }
-    });
-
-    socket.on('deleteProduct', async (id) => {
-        try {
-            console.log('Deleting product:', id);
-            await productManager.deleteProduct(id);
-            const products = await productManager.getProducts();
-            io.emit('updateProducts', products);
-        } catch (error) {
-            console.error('Error deleting product:', error);
-            socket.emit('error', { message: error.message });
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
+// Manejo de errores
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).render('error', { message: 'Ha ocurrido un error en el servidor' });
 });
 
-httpServer.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
 }); 
